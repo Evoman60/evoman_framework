@@ -226,3 +226,7 @@ tmp.ipynb
 *.txt
 evoman_solstate
 neuroended
+
+#ssh
+rsa_id
+rsa_id.pub

@@ -221,3 +221,8 @@ tmp.ipynb
 
 #python demo files
 *demo.py
+
+#log files
+*.txt
+evoman_solstate
+neuroended

@@ -20,8 +20,8 @@ for en in range(1, 9):
                       enemymode='static',
                       speed="normal",
                       sound="on",
-                      fullscreen=True,
-                      use_joystick=True,
+                      fullscreen=False,
+                      use_joystick=False,
                       playermode='human',
                       visuals=True)
     env.update_parameter('enemies', [en])

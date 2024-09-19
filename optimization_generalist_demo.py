@@ -36,8 +36,9 @@ env = Environment(experiment_name=experiment_name,
                   player_controller=player_controller(n_hidden_neurons),
                   enemymode="static",
                   level=2,
-                  speed="fastest",
-                  visuals=False)
+                    speed="normal",
+                    fullscreen=False,
+                    visuals=True)
 
 # default environment fitness is assumed for experiment
 

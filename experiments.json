@@ -1,0 +1,26 @@
+{
+  "optimization_specialist_neat_en4_250gen": {
+    "status": "finished",
+    "best_fitness": 92.6214909713855,
+    "current_generation": 250,
+    "total_generations": 250,
+    "enemy": 4,
+    "config_file": "neat_config.txt"
+  },
+  "optimization_specialist_neat_en1_250gen": {
+    "status": "finished",
+    "best_fitness": 95.030186700424,
+    "current_generation": 250,
+    "total_generations": 250,
+    "enemy": 1,
+    "config_file": "neat_config.txt"
+  },
+  "test_with_smaller_pop": {
+    "status": "finished",
+    "best_fitness": 94.95014399275047,
+    "current_generation": 250,
+    "total_generations": 250,
+    "enemy": 1,
+    "config_file": "neat_config.txt"
+  }
+}

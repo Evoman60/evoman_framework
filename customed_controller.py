@@ -8,8 +8,6 @@ from evoman.controller import Controller
 import numpy as np
 from nn import NN, MLP
 
-def sigmoid_activation(x):
-	return 1./(1.+np.exp(-x))
 
 # implements controller structure for player
 class player_controller(Controller):
@@ -29,7 +27,7 @@ class player_controller(Controller):
     def control(self, inputs, controller):
         self.controller.set(controller)
         output = self.controller.forward(inputs) 
-        threshhold = self.controller.activation_function(0)
+        threshhold = self.controller.activation_function(np.float32(0.))
         
         if output[0] > threshhold:
             left = 1

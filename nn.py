@@ -1,13 +1,21 @@
 import numpy as np
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
 
-def relu(x):
-    return x.clip(0.)  
 
-def tanh(x):
-    return (np.exp(x) + np.exp(-x)) / (np.exp(x) - np.exp(-x)) 
+def activation_function_factory(mode: str ='sigmoid'):
+    if mode == 'sigmoid':
+        return lambda x: 1 / (1 + np.exp(-x))
+    elif mode == 'relu':
+        return lambda x: x.clip(0.)
+    elif mode == 'tanh':
+        return lambda x: (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x)) 
+    
+
+def mean_var_norm(x: np.ndarray):
+    mean = x.mean(axis = 0)
+    var = x.var(axis = 0)
+    return (x-mean) / var
+
 
 class NN(object):
     def __init__(self):
@@ -23,7 +31,7 @@ class MLP(NN):
                  hidden_layer_size: int, 
                  output_size: int,
                  init_weight: str | np.ndarray = 'random',
-                 activation_function: callable = sigmoid) -> None:
+                 activation_function: str = 'sigmoid') -> None:
         
         #for future changes might be done, not necessary for now        
         super().__init__()
@@ -42,7 +50,7 @@ class MLP(NN):
                        
         self.weight_list = []
         self.bias_list = []
-        self.activation_function = activation_function
+        self.activation_function = activation_function_factory(activation_function)
         
         #using kaiming init
         if init_weight == 'random':
@@ -76,6 +84,11 @@ class MLP(NN):
                 
                 bias_split_point = [hidden_layer_size for _ in range(hidden_layer_num)]
                 self.bias_list = np.array_split(init_weight[weight_split_points[-1] : ], bias_split_point)
+        else:
+            raise NotImplementedError
+        
+        self.weight_list = list(map(lambda x: x.clip(-1, 1), self.weight_list))
+        self.bias_list = list(map(lambda x: x.clip(-1, 1), self.bias_list))
         
     def set_weight(self, init_weight: np.ndarray):
         assert init_weight.size == self.num_var
@@ -109,9 +122,12 @@ class MLP(NN):
             self.set_weight(set_arg)
         else:
             raise NotImplementedError
+        self.weight_list = list(map(lambda x: x.clip(-1, 1), self.weight_list))
+        self.bias_list = list(map(lambda x: x.clip(-1, 1), self.bias_list))
     
     def forward(self, x):
         hidden_state = x
+        x = mean_var_norm(x)
         for weight, bias in zip(self.weight_list, self.bias_list): 
             hidden_state = weight.dot(hidden_state)
             hidden_state += bias

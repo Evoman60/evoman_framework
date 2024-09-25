@@ -31,12 +31,16 @@ def simulation(env:Environment, x: np.ndarray):
 def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
-def parent_selection(population, fitness, parent_num, mode: str) -> np.ndarray:
+def parent_selection(population, fitness, parent_num, mode: str, **kwarg) -> np.ndarray:
     probility = minsum_norm(fitness)
     if mode == 'fitness_propotional_selection':
         selected_index = np.random.choice(population.shape[0], parent_num, True, probility)
-        offsprings = population[selected_index, : ]
-        return offsprings
+        parents = population[selected_index]
+    elif mode == 'tournament':
+        candidate_index = np.random.choice(population.shape[0], kwarg['parent_tournament_size'])
+        selected_index = fitness[candidate_index].argpartition(parent_num)[-parent_num]
+        parents = population[selected_index]
+    return parents
 
 def crossover(population, 
               fittness,
@@ -44,14 +48,15 @@ def crossover(population,
               offspring_num : int | None | str = None,
               parent_selection_mode: str = 'fitness_propotional_selection', 
               crossover_mode: str = 'whole_arithmetic',
-              alpha : np.ndarray = np.array([0.5, 0.5])):
+              alpha : np.ndarray = np.array([0.5, 0.5]),
+              **kwarg):
     
     #alpha is a parameter to control the propotion to blend in various crossover strategy.
     #alpha is a list. each element in the list specifies the propotion for each parents' to the offspring. 
     
     offspring_list = []
     while len(offspring_list) < offspring_num:  
-        parent_array = parent_selection(population, fittness, parent_num, parent_selection_mode)
+        parent_array = parent_selection(population, fittness, parent_num, parent_selection_mode, **kwarg)
         if crossover_mode == 'whole_arithmetic':
             if alpha.sum() != 1.0:
                 print(f"WARNING: Using an alpha whose sum is not 1. Currnet alpha sum is {alpha}.")
@@ -85,12 +90,18 @@ def mutation(population, mutation_rate, mode: str, **kwarg):
 
 
 
-def population_selection(population, fitness, population_num, mode: str):
+def population_selection(population, fitness: np.ndarray, population_num, mode: str, elite_num = 3):
     if population.shape[0] < population_num:
         return population, fitness
     probility = minsum_norm(fitness)
     if 'fitness_propotional_selection' in mode:
+
         selected_index = np.random.choice(population.shape[0], population_num, True, probility)
+        if 'elitism' in mode:
+            best_index = fitness.argpartition(elite_num)[-elite_num : ]
+            for i in best_index.tolist():
+                if i not in selected_index:
+                    selected_index[np.random.randint(0, selected_index.shape[0])] = i
         population = population[selected_index]
         fitness = fitness[selected_index]
         return population, fitness
@@ -101,8 +112,15 @@ def train(experiment_name: str,
           generation_num: int, 
           population_num: int, 
           population_selection_mode: str,
+          crossover_mode: str,
+          parent_num: int,
+          parent_selection_mode: str,
+          offspring_num: int,
+          alpha: float,
           mutation_mode: str,
-          mutation_rate: float):
+          mutation_rate: float,
+          **kwarg):
+    
     if not os.path.exists(experiment_name+'/evoman_solstate'):
 
         print( '\nNEW EVOLUTION\n')
@@ -142,8 +160,8 @@ def train(experiment_name: str,
     file_aux.close()
     
     for i in range(generation_num):
-        offsprings = crossover(population, population_fitness, 2, population_num)
-        offsprings = mutation(offsprings, mutation_rate, mutation_mode, loc = 0, scale = 1)
+        offsprings = crossover(population, population_fitness, parent_num, offspring_num, parent_selection_mode, crossover_mode, alpha, **kwarg)
+        offsprings = mutation(offsprings, mutation_rate, mutation_mode, **kwarg)
         offspring_fittness = evaluate(env, offsprings)
         if "+" in population_selection_mode:
             offsprings = np.concatenate((offsprings, population))
@@ -155,7 +173,7 @@ def train(experiment_name: str,
         std = np.std(population_fitness)
         # saves results
         file_aux  = open(experiment_name+'/results.txt','a')
-        print( '\n GENERATION '+str(i)+' '+str(round(population_fitness[best],6))+' '+str(round(mean,6))+' '+str(round(std,6)))
+        print( f'\n GENERATION {i} {round(population_fitness[best],6)} {round(mean,6)} {round(std,6)}')
         file_aux.write('\n'+str(i)+' '+str(round(population_fitness[best],6))+' '+str(round(mean,6))+' '+str(round(std,6))   )
         file_aux.close()
 
@@ -178,8 +196,21 @@ def train(experiment_name: str,
 
 
 
-
-def main(run_mode:str = 'visual_debug', generation_num = None, population_num=None, mutation_mode = 'guassian', mutation_rate=None, train_experiment_name = None) -> None:
+def main(run_mode: str = 'visual_debug', 
+         generation_num: int = None, 
+         population_num: int = None,
+         crossover_mode: str = None, 
+         parent_num: int = None,
+         parent_selection_mode: str = None,
+         offspring_num: int = None,
+         alpha: np.ndarray = None,
+         mutation_mode: str = 'guassian', 
+         mutation_rate: float = None, 
+         population_selection_mode: str = None,
+         train_experiment_name: str = None,
+         enemies: list = [1],
+         activation_function_name = 'sigmoid',
+         **kwargs) -> None:
     
     ini = time.time()
     
@@ -211,13 +242,15 @@ def main(run_mode:str = 'visual_debug', generation_num = None, population_num=No
         visuals=False
         speed='fastest'
     
-    experiment_name = 'dummy_demo' + f'_{run_mode}'
+    
+    experiment_name = f'dummy_demo_{run_mode}_{population_num}_{crossover_mode}_{parent_selection_mode}_{parent_num}_{offspring_num}_{mutation_mode}_{mutation_rate}_{population_selection_mode}_{alpha.tolist()}_{enemies}_{kwargs.items()}_{activation_function_name}' 
     if not os.path.exists(experiment_name):
         os.makedirs(experiment_name)
+    print(experiment_name)
 
     # initializes simulation in individual evolution mode, for single static enemy.
     env = Environment(experiment_name=experiment_name,
-                    enemies=[2],
+                    enemies=enemies,
                     playermode="ai",
                     player_controller=Controller(), #use a empty one to enable sensor
                     enemymode="static",
@@ -227,7 +260,7 @@ def main(run_mode:str = 'visual_debug', generation_num = None, population_num=No
                     visuals=visuals)
 
     sensor_num = env.get_num_sensors()
-    new_player_controller = player_controller(MLP(sensor_num, 1, 10, 5)) #real play controller
+    new_player_controller = player_controller(MLP(sensor_num, 1, 10, 5,'random', activation_function_name)) #real play controller
     env.player_controller =  new_player_controller
     
     #var_num = len(player_controller.controller.get_weights_as_vec())
@@ -240,9 +273,15 @@ def main(run_mode:str = 'visual_debug', generation_num = None, population_num=No
               env=env,
               generation_num=generation_num,
               population_num=population_num,
-              population_selection_mode='fitness_propotional_selection+',
+              population_selection_mode=population_selection_mode,
+              crossover_mode = crossover_mode,
+              parent_num=parent_num,
+              parent_selection_mode=parent_selection_mode,
+              offspring_num=offspring_num,
+              alpha = alpha,
               mutation_mode=mutation_mode,
-              mutation_rate=mutation_rate)
+              mutation_rate=mutation_rate,
+              **kwargs)
     # initializes population loading old solutions or generating new ones
    
    
@@ -250,7 +289,27 @@ def main(run_mode:str = 'visual_debug', generation_num = None, population_num=No
     print( '\nExecution time: '+str(round((fim-ini)/60))+' minutes \n')
     file = open(experiment_name+'/neuroended', 'w')  # saves control (simulation has ended) file for bash loop file
     file.close()
-   
+
 if __name__ == '__main__':
-    main('visual_debug', generation_num=100, population_num=10, mutation_rate=0.2)
+    np.random.seed(42)
+    
+    parent_num=2
+    
+    main(run_mode = 'debug', 
+         generation_num=100, 
+         population_num=100, 
+         crossover_mode = 'whole_arithmetic',
+         parent_num=2,
+         parent_selection_mode='tournament',
+         population_selection_mode='fitness_propotional_selection_elitism+',
+         offspring_num = 100, 
+         mutation_mode = 'guassian', 
+         mutation_rate = 0.2,
+         alpha=np.array([0.5, 0.5]),
+         train_experiment_name=None,
+         activation_function_name='tanh',
+         enemies=[2],
+         loc = 0,
+         scale = 1,
+         parent_tournament_size = parent_num * 5)
     

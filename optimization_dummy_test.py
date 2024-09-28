@@ -7,7 +7,7 @@
 
 # imports framework
 import sys
-
+import shutil
 from evoman.environment import Environment
 from customed_controller import player_controller
 from evoman.controller import Controller
@@ -226,10 +226,10 @@ def main(run_mode: str = 'visual_debug',
         generation_num = 5 if generation_num is None else generation_num
     elif run_mode =='test':
         #have to specify which experiment to test, for logging reasons, use the different experiment name
-        bsol = np.loadtxt(train_experiment_name+'/best.txt') 
+        speed = 'normal'
+        visuals = True
+        bsol = np.loadtxt(train_experiment_name) 
         print( '\n RUNNING SAVED BEST SOLUTION \n')
-        env.update_parameter('speed','normal')
-        fitness = evaluate([bsol])
     elif run_mode == 'visual_test':
         visuals=True
         speed='normal'
@@ -243,10 +243,10 @@ def main(run_mode: str = 'visual_debug',
         speed='fastest'
     
     
-    experiment_name = f'train_demo_{run_mode}_{population_num}_{crossover_mode}_{parent_selection_mode}_{parent_num}_{offspring_num}_{mutation_mode}_{mutation_rate}_{population_selection_mode}_{alpha.round(2).tolist()}_{enemies}_{list(kwargs.values())}_{activation_function_name}' 
+    experiment_name = f'test_demo_{run_mode}_{population_num}_{crossover_mode}_{parent_selection_mode}_{parent_num}_{offspring_num}_{mutation_mode}_{mutation_rate}_{population_selection_mode}_{alpha.round(2).tolist()}_{enemies}_{list(kwargs.values())}_{activation_function_name}' 
     if not os.path.exists(experiment_name):
         os.makedirs(experiment_name)
-    print(experiment_name)
+    print('test_' + experiment_name)
 
     # initializes simulation in individual evolution mode, for single static enemy.
     env = Environment(experiment_name=experiment_name,
@@ -256,7 +256,7 @@ def main(run_mode: str = 'visual_debug',
                     enemymode="static",
                     level=2,
                     speed=speed,
-                    randomini='no',
+                    randomini='yes',
                     fullscreen=False,
                     visuals=visuals)
 
@@ -283,6 +283,11 @@ def main(run_mode: str = 'visual_debug',
               mutation_mode=mutation_mode,
               mutation_rate=mutation_rate,
               **kwargs)
+    elif 'test' in run_mode:
+        
+        fitness = evaluate(env,[bsol])
+        with open(train_experiment_name+f"_test_run_{kwargs['run_num']}.txt", 'w') as f:
+            np.savetxt(f, fitness)
     # initializes population loading old solutions or generating new ones
    
    
@@ -294,34 +299,38 @@ def main(run_mode: str = 'visual_debug',
 if __name__ == '__main__':
     np.random.seed(42)
     
-    for parent_num in [3, 4, 5]:
+    for parent_num in [2]:
         for mutation_rate in  [0.2]:
             for parent_tournament_size in [parent_num * 3]:
                 for activation_function_name in ['relu']:
-                    for population_selection_mode in ['fitness_propotional_selection_elitism+',  'fitness_propotional_selection']:
-                        for parent_selection_mode in ['tournament', 'fitness_propotional_selection']:
+                    for population_selection_mode in ['fitness_propotional_selection_elitism+']:
+                        for parent_selection_mode in ['tournament']:
                             for mutation_mode in ['guassian']:
+                                    for enemies, train_experiment_name in zip([[2], [3], [4]], os.listdir('./bests')):
+                                        train_experiment_name = 'bests/' + train_experiment_name
+                                        for current_run in range(10):
 
-                                alpha = np.array([1.0 / parent_num] * parent_num)
-                                
-                             
-                            main(run_mode = 'debug', 
-                                generation_num=100, 
-                                population_num=100, 
-                                crossover_mode = 'whole_arithmetic',
-                                parent_num=parent_num,
-                                parent_selection_mode=parent_selection_mode,
-                                population_selection_mode=population_selection_mode,
-                                offspring_num = 100, 
-                                mutation_mode = mutation_mode, 
-                                mutation_rate = mutation_rate,
-                                alpha=alpha,
-                                train_experiment_name=None,
-                                activation_function_name=activation_function_name,
-                                enemies=[2],
-                                loc = 0,
-                                scale = 1,
-                                upper_bound = 1,
-                                lower_bound = -1,
-                                parent_tournament_size = parent_tournament_size)
+                                            alpha = np.array([1.0 / parent_num] * parent_num)
+                                            
+                                            
+                                            main(run_mode = 'test', 
+                                                generation_num=100, 
+                                                population_num=100, 
+                                                crossover_mode = 'whole_arithmetic',
+                                                parent_num=parent_num,
+                                                parent_selection_mode=parent_selection_mode,
+                                                population_selection_mode=population_selection_mode,
+                                                offspring_num = 100, 
+                                                mutation_mode = mutation_mode, 
+                                                mutation_rate = mutation_rate,
+                                                alpha=alpha,
+                                                train_experiment_name=train_experiment_name,
+                                                activation_function_name='relu',
+                                                enemies=enemies,
+                                                loc = 0,
+                                                scale = 1,
+                                                upper_bound = 1,
+                                                lower_bound = -1,
+                                                parent_tournament_size = parent_tournament_size,
+                                                run_num = current_run)
     

@@ -229,7 +229,7 @@ def main(run_mode: str = 'visual_debug',
         bsol = np.loadtxt(train_experiment_name+'/best.txt') 
         print( '\n RUNNING SAVED BEST SOLUTION \n')
         env.update_parameter('speed','normal')
-        fitness = evaluate([bsol])
+        evaluate([bsol])
     elif run_mode == 'visual_test':
         visuals=True
         speed='normal'
@@ -243,7 +243,7 @@ def main(run_mode: str = 'visual_debug',
         speed='fastest'
     
     
-    experiment_name = f'train_demo_{run_mode}_{population_num}_{crossover_mode}_{parent_selection_mode}_{parent_num}_{offspring_num}_{mutation_mode}_{mutation_rate}_{population_selection_mode}_{alpha.round(2).tolist()}_{enemies}_{list(kwargs.values())}_{activation_function_name}' 
+    experiment_name = f'dummy_demo_{run_mode}_{population_num}_{crossover_mode}_{parent_selection_mode}_{parent_num}_{offspring_num}_{mutation_mode}_{mutation_rate}_{population_selection_mode}_{alpha.tolist()}_{enemies}_{list(kwargs.values())}_{activation_function_name}' 
     if not os.path.exists(experiment_name):
         os.makedirs(experiment_name)
     print(experiment_name)
@@ -256,7 +256,6 @@ def main(run_mode: str = 'visual_debug',
                     enemymode="static",
                     level=2,
                     speed=speed,
-                    randomini='no',
                     fullscreen=False,
                     visuals=visuals)
 
@@ -294,34 +293,28 @@ def main(run_mode: str = 'visual_debug',
 if __name__ == '__main__':
     np.random.seed(42)
     
-    for parent_num in [3, 4, 5]:
-        for mutation_rate in  [0.2]:
-            for parent_tournament_size in [parent_num * 3]:
-                for activation_function_name in ['relu']:
-                    for population_selection_mode in ['fitness_propotional_selection_elitism+',  'fitness_propotional_selection']:
-                        for parent_selection_mode in ['tournament', 'fitness_propotional_selection']:
-                            for mutation_mode in ['guassian']:
 
-                                alpha = np.array([1.0 / parent_num] * parent_num)
-                                
-                             
-                            main(run_mode = 'debug', 
-                                generation_num=100, 
-                                population_num=100, 
-                                crossover_mode = 'whole_arithmetic',
-                                parent_num=parent_num,
-                                parent_selection_mode=parent_selection_mode,
-                                population_selection_mode=population_selection_mode,
-                                offspring_num = 100, 
-                                mutation_mode = mutation_mode, 
-                                mutation_rate = mutation_rate,
-                                alpha=alpha,
-                                train_experiment_name=None,
-                                activation_function_name=activation_function_name,
-                                enemies=[2],
-                                loc = 0,
-                                scale = 1,
-                                upper_bound = 1,
-                                lower_bound = -1,
-                                parent_tournament_size = parent_tournament_size)
+    parent_num = 2
+    alpha = np.array([1.0 / parent_num] * parent_num)
+    
+    for enemies in [[1], [2], [3], [4]]:
+        main(run_mode = 'debug', 
+        generation_num=100, 
+        population_num=100, 
+        crossover_mode = 'whole_arithmetic',
+        parent_num=parent_num,
+        parent_selection_mode='tournament',
+        population_selection_mode='fitness_propotional_selection_elitism+',
+        offspring_num = 100, 
+        mutation_mode = 'uniform', 
+        mutation_rate = 0.2,
+        alpha=alpha,
+        train_experiment_name=None,
+        activation_function_name='relu',
+        enemies=enemies,
+        loc = 0,
+        scale = 1,
+        upper_bound = 1,
+        lower_bound = -1,
+        parent_tournament_size = 3 * parent_num)
     
